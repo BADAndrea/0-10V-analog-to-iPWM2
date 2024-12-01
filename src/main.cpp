@@ -17,7 +17,7 @@ const float VOLTAGE_DIVIDER_RATIO = 0.5;  // Voltage divider ratio (e.g., 5V/10V
 
 // Variables for non-blocking operation
 unsigned long lastUpdateTime = 0;
-const unsigned long UPDATE_INTERVAL = 100;  // Update every 100ms
+const unsigned long UPDATE_INTERVAL = 1000;  // Update every second
 
 void setup() {
   pinMode(ANALOG_INPUT_PIN, INPUT);
@@ -48,12 +48,18 @@ void loop() {
     pwmValue = constrain(pwmValue, MIN_PWM, MAX_PWM);
     analogWrite(PWM_OUTPUT_PIN, pwmValue);
     
+    // Calculate PWM percentage
+    float pwmPercentage = ((float)pwmValue / MAX_PWM) * 100;
+    
     // Debug output only if enabled
     if (DEBUG_ENABLED) {
       Serial.print("Voltage: ");
       Serial.print(voltage);
       Serial.print("V, PWM: ");
-      Serial.println(pwmValue);
+      Serial.print(pwmValue);
+      Serial.print(" (");
+      Serial.print(pwmPercentage);
+      Serial.println("%)");
     }
   }
   
