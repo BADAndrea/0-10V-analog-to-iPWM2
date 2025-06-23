@@ -15,8 +15,9 @@ void AnalogPwmInverter::begin() {
 }
 
 void AnalogPwmInverter::update() {
-  if (millis() - _lastUpdateTime >= _updateInterval) {
-    _lastUpdateTime = millis();
+  unsigned long now = millis();
+  if (now - _lastUpdateTime >= _updateInterval) {
+    _lastUpdateTime = now;
     
     // Take multiple readings and average them
     float voltageSum = 0;
@@ -29,13 +30,9 @@ void AnalogPwmInverter::update() {
     float averageVoltage = voltageSum / _numReadings;
     
     // Calculate PWM value (inverse proportion)
-    int pwmValue = map(averageVoltage * 100, 
-                      0, 
-                      _maxVoltage * 100, 
-                      _maxPwm, 
-                      _minPwm);
-    
-    pwmValue = constrain(pwmValue, _minPwm, _maxPwm);
+    float ratio = averageVoltage / _maxVoltage;
+    ratio = constrain(ratio, 0.0f, 1.0f);
+    int pwmValue = (int)((1.0f - ratio) * (_maxPwm - _minPwm) + _minPwm + 0.5f);
     
     // Perform analogWrite only if the PWM value has changed
     if (pwmValue != _previousPwmValue) {
@@ -55,22 +52,37 @@ void AnalogPwmInverter::update() {
 
 // Configuration methods
 void AnalogPwmInverter::setVoltageRange(float maxVoltage, float dividerRatio) {
-  _maxVoltage = maxVoltage;
-  _voltageDividerRatio = dividerRatio;
+  if (maxVoltage > 0) {
+    _maxVoltage = maxVoltage;
+  }
+  if (dividerRatio > 0) {
+    _voltageDividerRatio = dividerRatio;
+  }
 }
 
 void AnalogPwmInverter::setPwmRange(int minPwm, int maxPwm) {
-  _minPwm = minPwm;
-  _maxPwm = maxPwm;
+  _minPwm = constrain(minPwm, 0, 255);
+  _maxPwm = constrain(maxPwm, 0, 255);
+  if (_minPwm > _maxPwm) {
+    int tmp = _minPwm;
+    _minPwm = _maxPwm;
+    _maxPwm = tmp;
+  }
 }
 
 void AnalogPwmInverter::setReadings(int numReadings, int readingDelay) {
-  _numReadings = numReadings;
-  _readingDelay = readingDelay;
+  if (numReadings > 0) {
+    _numReadings = numReadings;
+  }
+  if (readingDelay >= 0) {
+    _readingDelay = readingDelay;
+  }
 }
 
 void AnalogPwmInverter::setUpdateInterval(unsigned long interval) {
-  _updateInterval = interval;
+  if (interval > 0) {
+    _updateInterval = interval;
+  }
 }
 
 void AnalogPwmInverter::setDebug(bool enabled) {
@@ -78,8 +90,10 @@ void AnalogPwmInverter::setDebug(bool enabled) {
 }
 
 void AnalogPwmInverter::setPwmFrequency(unsigned long frequency) {
-  _pwmFrequency = frequency;
-  configurePwmTimer();
+  if (frequency > 0 && frequency <= (F_CPU / 256)) {
+    _pwmFrequency = frequency;
+    configurePwmTimer();
+  }
 }
 
 void AnalogPwmInverter::configurePwmTimer() {
